@@ -2,10 +2,11 @@
 
 This module provides a generic, reusable framework for binary and multi-class
 classification tasks following the DRY principle. It tracks accuracy, F1 score,
-and loss across training/validation loops, exports performance curves, and
-features a dedicated, standalone evaluation engine.
+and loss across training/validation loops, exports performance curves, features
+a standalone evaluation engine, and optimizes VRAM usage to prevent OOM errors.
 """
 
+import gc
 import os
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Optional, Tuple, Union
@@ -115,6 +116,15 @@ class Trainer:
         return scheduler_map[normalized_type](self.optimizer)
 
     @staticmethod
+    def _clear_vram_cache() -> None:
+        """Forces unreferencing garbage collection and flushes back-end accelerator caches."""
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        if hasattr(torch, "mps") and torch.mps.is_available():
+            torch.mps.empty_cache()
+
+    @staticmethod
     def _calculate_metrics(
         outputs: torch.Tensor, targets: torch.Tensor, task_type: str
     ) -> Tuple[float, float]:
@@ -149,15 +159,7 @@ class Trainer:
         return accuracy, macro_f1
 
     def _run_epoch(self, is_train: bool = True, alternative_loader: Optional[DataLoader] = None) -> Tuple[float, float, float]:
-        """Runs a single training or validation epoch over a given DataLoader.
-
-        Args:
-            is_train: Flag to toggle backpropagation training states.
-            alternative_loader: An optional explicit DataLoader to evaluate against.
-
-        Returns:
-            A tuple containing (loss, accuracy, f1_score) computed for the entire run.
-        """
+        """Runs a single training or validation epoch over a given DataLoader."""
         self.model.train(is_train)
         
         # Resolve which loader instance to pull batches from
@@ -194,6 +196,8 @@ class Trainer:
                     self.optimizer.step()
 
                 running_loss += loss.item() * inputs.size(0)
+                
+                # Detach metrics to avoid retaining gradients in memory
                 all_outputs.append(outputs.detach())
                 all_targets.append(targets.detach())
 
@@ -207,18 +211,14 @@ class Trainer:
             epoch_outputs, epoch_targets, self.config.task_type
         )
 
+        # Explicitly delete references and flush memory cache to prevent fragmentation
+        del all_outputs, all_targets, epoch_outputs, epoch_targets
+        self._clear_vram_cache()
+
         return epoch_loss, epoch_acc, epoch_f1
 
     def evaluate(self, data_loader: DataLoader) -> Tuple[float, float, float]:
-        """Evaluates the model on a provided dataset loader.
-
-        Args:
-            data_loader: The target DataLoader instance containing the data to test.
-
-        Returns:
-            A tuple of float scalars: (loss, accuracy, f1_score).
-        """
-        # Call internal loop framework forcing validation behaviors safely
+        """Evaluates the model on a provided dataset loader."""
         loss, accuracy, f1_score = self._run_epoch(is_train=False, alternative_loader=data_loader)
         return loss, accuracy, f1_score
 
@@ -262,6 +262,9 @@ class Trainer:
                 self.best_val_loss = val_loss
                 self.save_checkpoint(self.config.best_model_filename)
                 print(f"🏆 Best validation loss updated to {val_loss:.4f}. Model saved.")
+            
+            # Post-epoch global optimization cleanup
+            self._clear_vram_cache()
 
         return self.history
 
@@ -361,10 +364,9 @@ def load_model_weights(model: nn.Module, filepath: str, device: str = "cpu") -> 
     print(f"Successfully assigned model parameters out from: {filepath}")
     return model
 
+
 def download_kaggle_dataset(dataset_name: str) -> str:
-    """
-    download kaggle dataset to local directory given the dataset identifier, return the dataset path
-    """
+    """Downloads a Kaggle dataset to a local directory given its identifier, returning the local path."""
     import kagglehub
     from pathlib import Path
     path = Path(kagglehub.dataset_download(dataset_name))
