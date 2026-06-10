@@ -188,6 +188,10 @@ class Trainer:
                 targets = targets.to(self.device)
 
                 outputs = self.model(inputs)
+                # Handle models that return multiple outputs (like YOLOv8-cls tuple)
+                if isinstance(outputs, (list, tuple)):
+                    outputs = outputs[0]
+                
                 loss = self.criterion(outputs, targets)
 
                 if is_train:
