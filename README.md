@@ -1,122 +1,276 @@
-# 🏗️ Classification Hub — SAIR PyTorch Mastery
+# 🏗️ Classification Hub — Production-Grade PyTorch Mastery
 
-> You covered all the theory. You followed the lectures.
-> Now here are five real datasets and five real problems.
-> Build the solutions yourself.
+A comprehensive deep learning suite tackling five classification challenges using a unified, high-performance training framework built in PyTorch.
 
 ---
 
-## Exercises
+## 📋 Project Overview
 
-| # | Modality | Project | Dataset | Difficulty | Time Estimate |
-|---|----------|---------|---------|------------|---------------|
-| [Ex 1](Ex_1_Tabular_Classification.ipynb) | 📊 Tabular | Rice Type Classifier | [Kaggle](https://www.kaggle.com/datasets/mssmartypants/rice-type-classification) | ⭐ Easy | 3–4 hrs |
-| [Ex 2](Ex_2_Image_Classification.ipynb) | 🖼️ Image (scratch) | Animal Face Classifier | [Kaggle](https://www.kaggle.com/datasets/andrewmvd/animal-faces) | ⭐⭐ Medium | 5–7 hrs |
-| [Ex 3](Ex_3_Image_Classification_Pretrained.ipynb) | 🌿 Image (pretrained) | Bean Leaf Disease Detector | [Kaggle](https://www.kaggle.com/datasets/marquis03/bean-leaf-lesions-classification) | ⭐⭐ Medium | 5–6 hrs |
-| [Ex 4](Ex_4_Audio_Classification.ipynb) | 🎵 Audio | Quran Reciter Identifier | [Kaggle](https://www.kaggle.com/datasets/mohammedalrajeh/quran-recitations-for-audio-classification) | ⭐⭐⭐ Hard | 7–10 hrs |
-| [Ex 5](Ex_5_Text_Classification_Transformers.ipynb) | 📝 Text | Sarcasm Detector | [Kaggle](https://www.kaggle.com/datasets/rmisra/news-headlines-dataset-for-sarcasm-detection) | ⭐⭐ Medium | 5–7 hrs |
+The **Classification Hub** is an end-to-end machine learning engineering repository demonstrating state-of-the-art model architectures across five core data modalities: **Tabular, Computer Vision (Scratch), Computer Vision (Transfer Learning), Audio Digital Signal Processing (DSP), and Natural Language Processing (NLP)**.
 
-> **Where to start:** Ex 1 → get familiar with the submission format. Then pick whichever modality interests you most.
+Rather than deploying disparate scripts for each task, this repository leverages a centralized, production-ready execution engine (`utilities.py`). This engine encapsulates optimization, hardware-accelerated metric evaluation, advanced learning rate scheduling, automated checkpointing, and aggressive VRAM lifecycle management following the DRY (Don't Repeat Yourself) principle.
 
 ---
 
-## What Every Submission Must Include
+## 🚀 Key Features
 
-Every notebook you submit must have all of the following:
-
-- A **trained PyTorch model** that solves the stated problem
-- A **training report** — loss and accuracy curves for train and validation
-- A **final test accuracy score** on held-out data
-- A **live inference demo** — the model runs on a new real example and returns a prediction
-
-For **Ex 3 and Ex 5** you also need a written explanation (in a markdown cell)
-of your architectural decisions: what model you chose, what you froze, what you added, and why.
-
-For **Ex 4** you need a written explanation of how you converted audio into
-a format your model could process.
+* **Unified Core Training Framework:** Automated multi-class and binary pipelines handling model training, evaluation, and inference seamlessly.
+* **On-Device Metric Processing:** Native, GPU-accelerated implementation of accuracy and macro F1-score tracking without CPU bottlenecks.
+* **Multi-Modal Mastery:** End-to-end pipelines addressing tabular data, custom 2D Convolutional Neural Networks (CNNs), deep transfer learning backbones, time-frequency audio DSP conversions, and transformer fine-tuning.
+* **Robust Memory Optimization:** Embedded deterministic garbage collection and accelerator cache-flushing layers to actively mitigate Out-Of-Memory (OOM) exceptions on resource-constrained environments like Google Colab T4 GPUs.
+* **Production Tooling:** Automated checkpointing of the best and latest state-dicts, metadata tracking, and automatic dataset streaming through the `kagglehub` API.
 
 ---
 
-## Target Accuracy
+## 📐 Architecture Overview
 
-These are realistic targets. Exceeding them means your implementation is strong.
+The system isolates task-specific preprocessing and model definitions from the structural training logic. Each project prepares its independent dataset into PyTorch `DataLoaders`, which are then ingested by the shared execution matrix:
 
-| Exercise | Target Accuracy | Notes |
-|----------|----------------|-------|
-| Ex 1 — Rice Classifier | ≥ 92% | Clean tabular data, should converge fast |
-| Ex 2 — Animal Faces | ≥ 75% | Building a CNN from scratch is genuinely hard |
-| Ex 3 — Bean Disease | ≥ 88% | Transfer learning makes this very achievable |
-| Ex 4 — Quran Reciter | ≥ 70% | Audio is harder; 70% is a strong result |
-| Ex 5 — Sarcasm Detector | ≥ 82% | Fine-tuned transformer should clear this easily |
+```mermaid
+graph TD
+    A[Kaggle Datasets] -->|KaggleHub API| B(Raw Data Ingestion)
+    B --> C1[Ex 1: Tabular Vectors]
+    B --> C2[Ex 2: Raw Image Pixels]
+    B --> C3[Ex 3: Augment Leaf Images]
+    B --> C4[Ex 4: .wav Audio Waveforms]
+    B --> C5[Ex 5: Raw Text Strings]
 
----
+    C4 -->|Librosa DSP Engine| D[2D Mel Spectrograms]
+    C5 -->|HuggingFace Tokenizer| E[Token IDs & Attention Masks]
 
-## Submission Rubric
+    C1 & C2 & C3 & D & E --> F[PyTorch DataLoader Pipeline]
+    F --> G[Centralized Trainer Class]
+    
+    subgraph Core Engine utilities.py
+        G --> H[Model Training & Backprop]
+        G --> I[On-Device Accuracy/F1 Calc]
+        G --> J[LR Scheduler Lifecycle]
+        G --> K[Active VRAM Cache Flush]
+    end
 
-Each submission is assessed across four dimensions:
+    G --> L[Serialized Checkpoints .pt]
+    G --> M[Matplotlib Training Reports]
 
-| Criterion | Full Credit | Partial Credit | Minimal Credit |
-|-----------|-------------|----------------|----------------|
-| **Model Quality** | Meets or beats target accuracy | Within 5% of target | Below target but trained correctly |
-| **Training Report** | Loss & accuracy curves, train vs. val | Curves present but incomplete | Only final score reported |
-| **Code Quality** | Clean, readable, functions/classes used | Working but unstructured | Barely working, messy |
-| **Inference Demo** | Runs on a real new example with output | Demo exists but hardcoded | No live demo |
-
-For exercises requiring written explanations (Ex 3, Ex 4, Ex 5): the explanation must be specific — "I used ResNet-18 because it was pre-trained on ImageNet which has overlapping features with leaf disease images" is good; "I chose this model because it performs well" is not.
-
----
-
-## Relevant Lectures
-
-| Exercise | Review Before Starting |
-|----------|----------------------|
-| Ex 1 — Tabular | Module 2 pipelines; `1_Intro.ipynb`; `2_DataLoader.ipynb` |
-| Ex 2 — Image (scratch) | `3_CNN.ipynb`; `labs/lab_3.ipynb` |
-| Ex 3 — Image (pretrained) | `4_Transfer_and_ResNet.ipynb`; `labs/lab_4.ipynb` |
-| Ex 4 — Audio | `3_CNN.ipynb` (2D input logic); independent research on mel spectrograms |
-| Ex 5 — Text | `8A_HuggingFace_Ecosystem.ipynb`; `8B_Hugging_Face_Finetuning.ipynb` |
-
----
-
-## Note on Exercise 4
-
-Audio classification was not demonstrated step-by-step in the lectures.
-You are expected to research the pipeline independently.
-You have the mental model — a CNN that classifies 2D input.
-The missing piece is how to get from a `.wav` file to a 2D array.
-
-**Hint:** look into mel spectrograms (`librosa.feature.melspectrogram`). Once you have a 2D array, the rest is a standard image classification pipeline.
-
----
-
-## Setup (Google Colab)
-
-All exercises run on **Google Colab with a T4 GPU**.
-
-**Runtime → Change runtime type → T4 GPU**
-
-For Kaggle dataset downloads:
-```python
-from google.colab import files
-files.upload()  # upload your kaggle.json
-!mkdir -p ~/.kaggle && mv kaggle.json ~/.kaggle/ && chmod 600 ~/.kaggle/kaggle.json
 ```
 
 ---
 
-## Getting Unstuck
+## 📂 Project Structure
 
-If you're stuck, work through this checklist before asking for help:
+```text
+classification_hub/
+├── Ex_1_Tabular_Classification.ipynb         # Tabular pipeline for Rice Type Classification
+├── Ex_2_Image_Classification.ipynb           # Custom CNN built from scratch for Animal Faces
+├── Ex_3_Image_Classification_Pretrained.ipynb# Transfer learning for Bean Leaf Disease Detection
+├── Ex_4_Audio_Classification.ipynb           # Audio Mel-Spectrogram pipeline for Reciter ID
+├── Ex_5_Text_Classification_Transformers.ipynb# Transformer fine-tuning for Sarcasm Detection
+├── utilities.py                              # Centralized core training & evaluation framework
+└── README.md                                 # Project documentation
 
-1. **Data** — Did you check class distribution? Is there severe imbalance?
-2. **Shapes** — Print `X.shape`, `y.shape`, and the first batch from your DataLoader
-3. **Loss** — Is the initial loss close to `−log(1/n_classes)`? If not, check your output layer
-4. **Overfitting** — Is train accuracy high but val accuracy low? Add dropout or data augmentation
-5. **Underfitting** — Is both train and val accuracy low? Increase model capacity or train longer
-6. **Learning rate** — If loss oscillates wildly, divide `lr` by 10. If it doesn't move, multiply by 10
+```
 
-Still stuck? Post in the [SAIR Telegram community](https://t.me/+jPPlO6ZFDbtlYzU0) with your loss curves and a code snippet.
+### Key Components Description
+
+* **`utilities.py`**: The backbone of the repository. Contains `TrainerConfig` (hyperparameter routing), `Trainer` (state management, loop tracking, visualization), and operational helpers (`predict`, `save_model_weights`, `download_kaggle_dataset`).
+* **`Ex_1` to `Ex_5` Notebooks**: Individual workflow configurations containing task analysis, feature preprocessing implementations, model declarations, and inference demos.
 
 ---
 
-*SAIR PyTorch Mastery Course — Classification Hub*
+## 🛠️ Technology Stack
+
+| Category | Technologies |
+| --- | --- |
+| **Core Language** | Python 3.10+ |
+| **Deep Learning Framework** | PyTorch (Core, Vision, Audio) |
+| **NLP Ecosystem** | Hugging Face (Transformers, Tokenizers) |
+| **Signal Processing** | torchaudio (Digital Signal Processing / Mel Spectrograms) |
+| **Data Orchestration** | Pandas, NumPy, Scikit-Learn |
+| **Visualization** | Matplotlib, Tqdm |
+| **Compute Targets** | NVIDIA T4 GPU / CUDA Accelerated |
+
+---
+
+## 🔬 The Five Classification Challenges
+
+Every pipeline is bound to strict performance criteria and requires a live inference demo executing validation on novel, raw test instances.
+
+### 📊 Exercise 1: Tabular Classification (Rice Type Classifier)
+
+* **Problem Statement:** Classify distinct rice types based on structural morphological features.
+* **Data Characteristics:** High-density, clean numeric tabular vectors requiring low convergence time.
+* **Solution Architecture:** Multi-Layer Perceptron (MLP) mapping dense vector topologies through fully connected layers interleaved with Batch Normalization and ReLU activations.
+* **Target Metric:** $\ge 92\%$ Final Accuracy.
+
+### 🖼️ Exercise 2: Image Classification From Scratch (Animal Face Classifier)
+
+* **Problem Statement:** Multi-class classification of distinct animal profiles from raw pixel variations.
+* **Data Characteristics:** Variable resolution, multi-channel structural images.
+* **Solution Architecture:** A deep 2D Convolutional Neural Network (CNN) built entirely from scratch. Leverages progressive channel expansion ($3 \rightarrow 32 \rightarrow 64 \rightarrow 128$), pooling operations, and severe regularization (Dropout) to counter spatial overfitting.
+* **Target Metric:** $\ge 75\%$ Final Accuracy.
+
+### 🌿 Exercise 3: Image Classification via Transfer Learning (Bean Leaf Disease Detector)
+
+* **Problem Statement:** Detect specific agricultural pathologies affecting plant leaves.
+* **Data Characteristics:** Natural, variable-lighting biological textures with subtle fine-grained variance.
+* **Solution Architecture:** Feature extraction and downstream fine-tuning using a premier deep backbone pretrained on ImageNet (e.g., ResNet-18). The feature representation layers are frozen, while custom linear layers map class probabilities. Detailed architectural justifications are documented in-notebook.
+* **Target Metric:** $\ge 88\%$ Final Accuracy.
+
+### 🎵 Exercise 4: Audio Classification (Quran Reciter Identifier)
+
+* **Problem Statement:** Identify specific target speaker voices using raw acoustic recordings.
+* **Data Characteristics:** Multi-second native `.wav` continuous audio waveform arrays.
+* **Solution Architecture:** Implements an advanced intermediate processing pipeline utilizing `librosa.feature.melspectrogram`. Signals are downsampled and converted into 2D structural time-frequency representations (Mel Spectrograms), effectively mapping audio classification into a 2D CNN workspace.
+* **Target Metric:** $\ge 70\%$ Final Accuracy.
+
+### 📝 Exercise 5: Text Classification via Transformers (Sarcasm Detector)
+
+* **Problem Statement:** Unveil abstract linguistic context to classify text fragments as sarcastic or literal.
+* **Data Characteristics:** Short-form text utterances, headlines, and phrase sequences.
+* **Solution Architecture:** Contextual sentence embeddings mapped using Hugging Face Transformer architectures. Tokenized sequences pass through attention masks feeding fine-tuned linear sequence heads.
+* **Target Metric:** $\ge 82\%$ Final Accuracy.
+
+---
+
+## ⚙️ Core Engineering Engine: `utilities.py`
+
+The core framework decouples operational infrastructure from network layouts.
+
+### 1. `TrainerConfig`
+
+A structured dataclass encapsulating execution configurations:
+
+```python
+@dataclass
+class TrainerConfig:
+    device: str = "cuda" if torch.cuda.is_available() else "cpu"
+    epochs: int = 10
+    batch_size: int = 32
+    lr: float = 1e-3
+    weight_decay: float = 1e-2
+    scheduler_type: Optional[str] = "cosine"  # 'cosine', 'reduce_on_plateau', 'exponential', None
+    scheduler_monitor_metric: str = "val_loss"
+    task_type: str = "multiclass"              # 'binary' or 'multiclass'
+    checkpoint_dir: str = "./checkpoints"
+    best_model_filename: str = "best_model.pt"
+    last_model_filename: str = "last_model.pt"
+
+```
+
+### 2. High-Performance Utilities
+
+* **Memory Shielding:** Automated execution of `Trainer._clear_vram_cache()` isolates tensor operations, triggers Python garbage collection (`gc.collect()`), and clears active device memory buffers (`torch.cuda.empty_cache()`) immediately after evaluations.
+* **Native Metrics Loop:** Evaluates macro F1-score and system wide accuracy directly on-device, bypassing frequent tensor cloning to host CPU memory.
+
+---
+
+## 💾 Installation & Setup
+
+### Prerequisites
+
+Execution is fully optimized for **Google Colab runtimes backed by a T4 GPU Instance**.
+
+### Dependency Setup
+
+To replicate the environment locally or within a notebook instance, install the required suite:
+
+```bash
+pip install torch torchvision torchaudio transformers librosa matplotlib tqdm kagglehub
+
+```
+
+### Kaggle API Configuration
+
+To handle automated downloads for the 5 target datasets, configure the local environment with active Kaggle developer tokens:
+
+```python
+from google.colab import files
+import os
+
+# Prompt user for credentials download from Kaggle Account Settings
+files.upload() 
+
+# Direct token routing
+os.system("mkdir -p ~/.kaggle && mv kaggle.json ~/.kaggle/ && chmod 600 ~/.kaggle/kaggle.json")
+
+```
+
+---
+
+## 🚀 Usage Workflow
+
+Running any modal pipeline follows a structured, consistent blueprint:
+
+```python
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
+from utilities import Trainer, TrainerConfig, download_kaggle_dataset
+
+# 1. Acquire Data Asset
+dataset_path = download_kaggle_dataset("mssmartypants/rice-type-classification")
+
+# 2. Instantiate Custom Pipeline Component DataLoaders
+# train_loader = DataLoader(...)
+# val_loader = DataLoader(...)
+
+# 3. Define Model and Loss Objective
+model = YourCustomModel()
+criterion = nn.CrossEntropyLoss()
+
+# 4. Construct Execution Metrics
+config = TrainerConfig(
+    epochs=12,
+    lr=5e-4,
+    scheduler_type="cosine",
+    task_type="multiclass"
+)
+
+# 5. Execute Optimization Pipeline
+trainer = Trainer(
+    model=model,
+    config=config,
+    criterion=criterion,
+    train_loader=train_loader,
+    val_loader=val_loader
+)
+
+history = trainer.fit()
+
+# 6. Generate Performance Deliverables
+trainer.plot_metrics(save_path="training_metrics.png")
+
+```
+
+---
+
+## 🛠️ Performance Tuning & Troubleshooting
+
+If convergence delays or metrics stagnate during execution, utilize the following engineering checklist:
+
+* **Initial Loss Sanity Check:** Verify your output layer activation. Ensure that initial epoch losses evaluate close to $- \log(1 / n_{\text{classes}})$. Divergence indicates improper output scaling or activation mapping.
+* **Mitigating Severe Overfitting:** If training metrics outpace validation paths significantly, inject higher Dropout ratios inside your models or integrate data augmentation transforms (e.g., `torchvision.transforms.RandomHorizontalFlip`).
+* **Managing Underfitting:** If accuracy trails target objectives uniformly across both splits, step up model capacity (increase layers/channels) or scale training timelines.
+* **Learning Rate Optimization:** If loss graphs oscillate wildly across iterations, divide your base configuration learning rate by 10. If progress remains static, multiply it by 10.
+
+---
+
+## 📊 Evaluation Rubric Metrics
+
+All implementations are benchmarked against four distinct metrics for grading:
+
+1. **Model Quality:** Meets or exceeds the specific baseline accuracy targets.
+2. **Training Report:** Comprehensive validation logging with complete loss and accuracy curve tracking.
+3. **Code Quality:** Adherence to standard conventions, functional encapsulation, and zero pipeline duplication.
+4. **Inference Demo:** A live, non-hardcoded evaluation pipeline computing raw unseen validation files.
+
+---
+
+## 📄 License
+
+This repository is distributed for educational and development purposes under a standard private portfolio structure. Please consult specific Kaggle hosts regarding underlying source dataset licenses.
+
+---
+
+## 👥 Contact & Community
+
+For community debugging and collaborative optimization sharing, connect through the [SAIR Repository Hub](https://github.com/SAIR-Org). Provide detailed loss curves and complete `utilities.py` parameter blocks when troubleshooting pipeline behaviors.
