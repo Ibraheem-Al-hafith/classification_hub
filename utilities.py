@@ -272,28 +272,90 @@ class Trainer:
 
         return self.history
 
-    def plot_metrics(self, save_path: Optional[str] = None) -> None:
-        """Plots the training metrics history (Loss, Accuracy, F1 Score)."""
-        epochs = range(1, len(self.history["train_loss"]) + 1)
+    def plot_confusion_matrix(
+        self, 
+        data_loader: DataLoader, 
+        class_names: Optional[list[str]] = None, 
+        save_path: Optional[str] = None
+    ) -> None:
+        """
+        Generates and plots a 2x2 grid containing 4 distinct variations of the 
+        confusion matrix: Raw Counts, Total Percentages, Row-Normalized (Recall), 
+        and Column-Normalized (Precision).
+        """
+        import seaborn as sns
+        from sklearn.metrics import confusion_matrix
         
-        fig, axs = plt.subplots(1, 3, figsize=(18, 5))
-        metrics_to_plot = [("loss", "Loss"), ("acc", "Accuracy"), ("f1", "F1 Score")]
-
-        for i, (key, title) in enumerate(metrics_to_plot):
-            axs[i].plot(epochs, self.history[f"train_{key}"], label=f"Train {title}", marker='o')
-            if self.val_loader and f"val_{key}" in self.history:
-                axs[i].plot(epochs, self.history[f"val_{key}"], label=f"Val {title}", marker='s')
+        self.model.eval()
+        all_preds = []
+        all_targets = []
+        
+        # 1. Gather all predictions and targets from the specified loader
+        with torch.no_grad():
+            for inputs, targets in data_loader:
+                if isinstance(inputs, (list, tuple)):
+                    inputs = inputs[0]
+                inputs = inputs.to(self.device)
+                
+                outputs = self.model(inputs)
+                if isinstance(outputs, (list, tuple)):
+                    outputs = outputs[0]
+                
+                if self.config.task_type == "binary":
+                    preds = (torch.sigmoid(outputs) >= 0.5).long()
+                else:
+                    preds = torch.argmax(outputs, dim=1)
+                    
+                all_preds.append(preds.cpu())
+                all_targets.append(targets.cpu())
+                
+        y_pred = torch.cat(all_preds, dim=0).numpy()
+        y_true = torch.cat(all_targets, dim=0).numpy()
+        
+        # 2. Compute the baseline raw count confusion matrix
+        cm = confusion_matrix(y_true, y_pred)
+        
+        # 3. Compute normalized variations while protecting against division by zero
+        cm_prob = cm / cm.sum()
+        cm_row = cm.astype('float') / cm.sum(axis=1, keepdims=True)
+        cm_row = np.nan_to_num(cm_row)
+        cm_col = cm.astype('float') / cm.sum(axis=0, keepdims=True)
+        cm_col = np.nan_to_num(cm_col)
+        
+        # Setup class names label lists
+        if class_names is None:
+            class_names = [str(i) for i in range(cm.shape[0])]
             
-            axs[i].set_title(title)
-            axs[i].set_xlabel("Epochs")
-            axs[i].set_ylabel(title)
-            axs[i].legend()
-            axs[i].grid(True, linestyle="--", alpha=0.6)
-
+        # 4. Initialize the 2x2 matplotlib canvas grid
+        fig, axs = plt.subplots(2, 2, figsize=(16, 14))
+        
+        matrix_configs = [
+            (cm, "Raw Counts", "d", axs[0, 0]),
+            (cm_prob, "Total Probabilities", ".2%", axs[0, 1]),
+            (cm_row, "Row Normalized (Recall Matrix)", ".2f", axs[1, 0]),
+            (cm_col, "Column Normalized (Precision Matrix)", ".2f", axs[1, 1])
+        ]
+        
+        for data, title, fmt, ax in matrix_configs:
+            sns.heatmap(
+                data, 
+                annot=True, 
+                fmt=fmt, 
+                cmap="Blues", 
+                xticklabels=class_names, 
+                yticklabels=class_names, 
+                ax=ax,
+                cbar=True,
+                square=True
+            )
+            ax.set_title(title, fontsize=14, fontweight='bold', pad=10)
+            ax.set_xlabel("Predicted Labels", fontsize=11)
+            ax.set_ylabel("True Labels", fontsize=11)
+            
         plt.tight_layout()
         if save_path:
-            plt.savefig(save_path, dpi=300)
-            print(f"📈 Evaluation plot successfully saved to: {save_path}")
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"📊 Confusion matrix grid saved to: {save_path}")
         plt.show()
 
     def save_checkpoint(self, filename: str) -> None:
