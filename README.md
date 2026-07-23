@@ -4,6 +4,12 @@ A comprehensive deep learning suite tackling five classification challenges usin
 
 ---
 
+<div align="center">
+    <img src="https://github.com/Ibraheem-Al-hafith/classification_hub/blob/main/assets/logo.png" width="50%" height="50%" style="border-radius:10% "/>
+</div>
+
+---
+
 ## 📋 Project Overview
 
 The **Classification Hub** is an end-to-end machine learning engineering repository demonstrating state-of-the-art model architectures across five core data modalities: **Tabular, Computer Vision (Scratch), Computer Vision (Transfer Learning), Audio Digital Signal Processing (DSP), and Natural Language Processing (NLP)**.
